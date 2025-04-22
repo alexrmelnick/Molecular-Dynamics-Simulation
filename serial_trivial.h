@@ -7,6 +7,13 @@ File md.h is an include file for program md.c.
 /* Constants for the random number generator */
 #define D2P31M 2147483647.0
 #define DMUL 16807.0
+#define NCLMAX 10000 /* Maximum number of linked-list cells */
+#define EMPTY -1
+#define DENSITY 0.8f     /* Number density of atoms (in reduced unit) */
+#define INITTEMP 1.0f    /* Starting temperature (in reduced unit) */
+#define DELTAT 0.005f     /* Size of a time step (in reduced unit) */
+#define STEPLIMIT 50  //100      /* Number of time steps to be simulated */
+#define STEPAVG 11       /* Reporting interval for statistical data */
 
 /* Functions & function prototypes ********************************************/
 
@@ -27,25 +34,26 @@ void RandVec3(double *p, double *seed) {
 	}
 	p[2] = 1.0 - 2.0*s; s = 2.0*sqrt(1.0 - s); p[0] = s*x; p[1] = s*y;
 }
-void InitParams();
-void InitConf();
+
+/* Serial O(N^2) Implementation */
+//void InitParams();
+//void InitConf();
 void ComputeAccel();
 void SingleStep();
 void HalfKick();
 void ApplyBoundaryCond();
 void EvalProps();
 
-/* Input parameters (read from an input file in this order) *******************/
-
-int InitUcell[3];   /* Number of unit cells */
-double Density;     /* Number density of atoms (in reduced unit) */
-double InitTemp;    /* Starting temperature (in reduced unit) */
-double DeltaT;      /* Size of a time step (in reduced unit) */
-int StepLimit;      /* Number of time steps to be simulated */
-int StepAvg;        /* Reporting interval for statistical data */
+/* Cells O(N) Implementation */
+/*void ComputeAccel();
+void SingleStep();
+void HalfKick();
+void ApplyBoundaryCond();
+void EvalProps();*/
 
 /* Constants ******************************************************************/
 
+int InitUcell[3];   /* Number of unit cells */
 double Region[3];  /* MD box lengths */
 double RegionH[3]; /* Half the box lengths */
 double DeltaTH;    /* Half the time step */
@@ -62,4 +70,7 @@ double potEnergy;     /* Potential energy */
 double totEnergy;     /* Total energy */
 double temperature;   /* Current temperature */
 int stepCount;        /* Current time step */
+int lscl[NMAX];       /* Linked cell lists */
+int lc[3];            /* Number of cells in the x|y|z direction */
+double rc[3];         /* Length of a cell in the x|y|z direction */
 /******************************************************************************/
