@@ -6,9 +6,9 @@
 
 #include "serial_trivial.h"
 #include "serial_N3L.c"
-#include "parallel_N3L.c"
+//#include "parallel_N3L.c"
 #include "serial_baseline.c"
-//#include "serial_cell.c"
+#include "serial_cell.c"
 
 //#define DIMENSIONS 2        // 2D simulation
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
@@ -104,7 +104,7 @@ int main()
 
     // Newton's 3rd Law
     OPTION++;
-    printf("Testing option Newton's 3rd Law (USC) %d\n", OPTION);
+    printf("Testing option Newton's 3rd Law (USC)\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
@@ -116,34 +116,29 @@ int main()
     }
     
     // OPENMP
+    /*
     OPTION++;
-    printf("testing option %d (Netwon's 3rd Law with OpenMP Multi-Threading)\n", OPTION);
+    printf("Testing option Netwon's 3rd Law with OpenMP Multi-Threading\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
-        // final_answer += *result; // need version of this so compiler doesn't optimize away
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }
-/*
-    // CUDA 
+    }*/
+
+    // Cell List 
     OPTION++;
-    printf("testing option %d\n", OPTION);
+    printf("Testing option Cell Lists (USC)\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        // TODO: final_answer += serial_trivial(num_atoms = n)
-        // final_answer += *result; // need version of this so compiler doesn't optimize away
+        final_answer += serial_cell();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
-
-
-    // Newton's 3rd law
-    */
 
     /* output times */
     printf("%s", "# Atoms, Baseline, N3L, N3L-OpenMP, Cell List, GPU Cell\n");
@@ -155,7 +150,7 @@ int main()
             if (j != 0) {
             printf(", ");
             }
-            printf("%ld", (long int)(time_stamp[j][i]));
+            printf("%.4f", time_stamp[j][i]);
         }
         printf("\n");
         }
@@ -200,11 +195,11 @@ void InitParams(int ideal_num_atoms)
 		RegionH[k] = 0.5*Region[k];
 	}
 
-    /* Compute the # of cells for linked cell lists 
+    // Compute the # of cells for linked cell lists 
 	for (k=0; k<3; k++) {
 		lc[k] = Region[k]/RCUT; 
 		rc[k] = Region[k]/lc[k];
-	}*/
+	}
 
 	/* Constants for potential truncation */
 	rr = RCUT*RCUT; ri2 = 1.0/rr; ri6 = ri2*ri2*ri2; r1=sqrt(rr);
