@@ -6,9 +6,9 @@
 
 #include "serial_trivial.h"
 #include "serial_N3L.c"
-#include "parallel_N3L.c"
+//#include "parallel_N3L.c"
 #include "serial_baseline.c"
-#include "serial_cell.c"
+//#include "serial_cell.c"
 
 //#define DIMENSIONS 2        // 2D simulation
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
@@ -90,28 +90,28 @@ int main()
     final_answer = wakeup_delay();
 
     OPTION = 0;
-    printf("testing option baseline serial trivial (USC code)\n");
+    printf("Testing option baseline serial\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
         printf("Time, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_trival();
+        final_answer += serial_base();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
     //CELL LIST - Both
     OPTION++;
-    printf("testing option serial cell list %d\n", OPTION);
+    printf("Testing option Newton's 3rd Law (USC) %d\n", OPTION);
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
         printf("Time, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_cell();
+        final_answer += serial_n3l();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
@@ -147,7 +147,7 @@ int main()
     */
 
     /* output times */
-    printf("%s", "# Atoms, Trivial, Serial Cell, GPU Serial, GPU Cell\n");
+    printf("%s", "# Atoms, Baseline, N3L, OpenMP, Cell List, GPU Cell\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
@@ -175,7 +175,7 @@ void InitAll(int ideal_num_atoms)
 {
     InitParams(ideal_num_atoms);  
 	InitConf(); 
-	ComputeAccel(); /* Computes initial accelerations */ 
+	ComputeAccelN3L(); /* Computes initial accelerations */ 
 }
 
 void InitParams(int ideal_num_atoms)
@@ -201,11 +201,11 @@ void InitParams(int ideal_num_atoms)
 		RegionH[k] = 0.5*Region[k];
 	}
 
-    /* Compute the # of cells for linked cell lists */
+    /* Compute the # of cells for linked cell lists 
 	for (k=0; k<3; k++) {
 		lc[k] = Region[k]/RCUT; 
 		rc[k] = Region[k]/lc[k];
-	}
+	}*/
 
 	/* Constants for potential truncation */
 	rr = RCUT*RCUT; ri2 = 1.0/rr; ri6 = ri2*ri2*ri2; r1=sqrt(rr);

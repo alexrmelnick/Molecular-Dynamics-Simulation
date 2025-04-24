@@ -35,14 +35,20 @@ void RandVec3(double *p, double *seed) {
 	p[2] = 1.0 - 2.0*s; s = 2.0*sqrt(1.0 - s); p[0] = s*x; p[1] = s*y;
 }
 
-/* Serial O(N^2) Implementation */
-//void InitParams();
-//void InitConf();
-void ComputeAccel();
-void SingleStep();
-void HalfKick();
-void ApplyBoundaryCond();
-void EvalProps();
+
+/* Serial Baseline O(N^2) Implementation */
+void ComputeAccelBase();
+void SingleStepBase();
+void HalfKickBase();
+void ApplyBoundaryCondBase();
+void EvalPropsBase();
+
+/* Serial Newton's 3rd Law O(N^2) Implementation */
+void ComputeAccelN3L();
+void SingleStepN3L();
+void HalfKickN3L();
+void ApplyBoundaryCondN3L();
+void EvalPropsN3L();
 
 /* Cells O(N) Implementation */
 /*void ComputeAccel();
