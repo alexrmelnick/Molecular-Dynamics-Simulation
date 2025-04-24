@@ -1,30 +1,21 @@
-//#include "common.h"
-//#include "serial_cell.h"
-
 /*******************************************************************************
 Molecular dynamics (MD) simulation with the Lennard-Jones potential.
-Now with cell lists!
 
-USAGE
-
-%cc -o md md.c -lm
-%md < md.in (see md.h for the input-file format)
+Leverage cell lists - use preallocated arrays as opposed to linked-lists
 *******************************************************************************/
 #include <stdio.h>
 #include <math.h>
-//#include <time.h>
 
 int serial_cell() {
-	//int stepCount;
 	for (stepCount=1; stepCount<=STEPLIMIT; stepCount++) {
 		SingleStep(); 
-		if (stepCount%STEPAVG == 0) EvalProps();
+		if (stepCount%STEPAVG == 0) EvalPropsCell();
 	}
 	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
-void ComputeAccel() {
+void ComputeAccelCell() {
 /*------------------------------------------------------------------------------
 	Acceleration, ra, are computed as a function of atomic coordinates, r,
 	using the Lennard-Jones potential.  The sum of atomic potential energies,
@@ -67,22 +58,22 @@ void ComputeAccel() {
 
 
 /*----------------------------------------------------------------------------*/
-void SingleStep() {
+void SingleStepCell() {
 /*------------------------------------------------------------------------------
 	r & rv are propagated by DeltaT in time using the velocity-Verlet method.
 ------------------------------------------------------------------------------*/
 	int n,k;
 
-	HalfKick(); /* First half kick to obtain v(t+Dt/2) */
+	HalfKickCell(); /* First half kick to obtain v(t+Dt/2) */
 	for (n=0; n<nAtom; n++) /* Update atomic coordinates to r(t+Dt) */
 		for (k=0; k<3; k++) r[n][k] = r[n][k] + DELTAT*rv[n][k];
-	ApplyBoundaryCond();
-	ComputeAccel(); /* Computes new accelerations, a(t+Dt) */
-	HalfKick(); /* Second half kick to obtain v(t+Dt) */
+	ApplyBoundaryCondCell();
+	ComputeAccelCell(); /* Computes new accelerations, a(t+Dt) */
+	HalfKickCell(); /* Second half kick to obtain v(t+Dt) */
 }
 
 /*----------------------------------------------------------------------------*/
-void HalfKick() {
+void HalfKickCell() {
 /*------------------------------------------------------------------------------
 	Accelerates atomic velocities, rv, by half the time step.
 ------------------------------------------------------------------------------*/
@@ -92,7 +83,7 @@ void HalfKick() {
 }
 
 /*----------------------------------------------------------------------------*/
-void ApplyBoundaryCond() {
+void ApplyBoundaryCondCell() {
 /*------------------------------------------------------------------------------
 	Applies periodic boundary conditions to atomic coordinates.
 ------------------------------------------------------------------------------*/
@@ -104,7 +95,7 @@ void ApplyBoundaryCond() {
 }
 
 /*----------------------------------------------------------------------------*/
-void EvalProps() {
+void EvalPropsCell() {
 /*------------------------------------------------------------------------------
 	Evaluates physical properties: kinetic, potential & total energies.
 ------------------------------------------------------------------------------*/
