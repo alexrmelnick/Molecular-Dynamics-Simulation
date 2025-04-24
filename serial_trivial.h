@@ -83,6 +83,7 @@ double potEnergy;     /* Potential energy */
 double totEnergy;     /* Total energy */
 double temperature;   /* Current temperature */
 int stepCount;        /* Current time step */
+int head[NCLMAX];     /* Headers for the linked cell lists */
 int lscl[NMAX];       /* Linked cell lists */
 int lc[3];            /* Number of cells in the x|y|z direction */
 double rc[3];         /* Length of a cell in the x|y|z direction */
