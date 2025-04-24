@@ -1,4 +1,4 @@
-//#include "parallel_N3L.h"
+// #include "serial_trivial.h"
 #include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,10 +7,6 @@
 /*******************************************************************************
 Molecular dynamics (MD) simulation with the Lennard-Jones potential including Newton's third law (only calculating half the forces) and parallelized with OpenMP.
 
-USAGE
-
-%cc -o md md.c -lm
-%md < md.in (see md.h for the input-file format)
 *******************************************************************************/
 #include <stdio.h>
 #include <math.h>
@@ -38,17 +34,19 @@ void ComputeAccelPN3L()
 		using the Lennard-Jones potential.  The sum of atomic potential energies,
 		potEnergy, is also computed.
 	------------------------------------------------------------------------------*/
-	double dr[3], f, fcVal, rrCut, rr, ri2, ri6, r1;
-	int j1, j2, n, k;
+	double f, fcVal, rrCut, ri2, ri6, r1;
+	int k;
 	int maxThreads = omp_get_max_threads();
-	double (*ra_private)[NMAX][3] = malloc(sizeof *ra_private * maxThreads); // Allocate private arrays for each thread so we don't have to use super slow atomic operations
+	double (*ra_private)[nAtom][3] = malloc(sizeof *ra_private * maxThreads); // Allocate private arrays for each thread so we don't have to use super slow atomic operations
 	potEnergy = 0.0;
-	rrCut = RCUT * RCUT;
 
 	// Begin OpenMP parallel region
-#pragma omp parallel {
+#pragma omp parallel private(f, fcVal, ri2, ri6, r1, k)
+{
 	int nThreads = omp_get_num_threads();
 	int tid = omp_get_thread_num();
+	rrCut = RCUT * RCUT;
+
 	memset(ra_private[tid], 0, sizeof ra_private[0]); // Zero out this thread's private array
 
 // #pragma omp for private(n, k)
@@ -59,12 +57,15 @@ void ComputeAccelPN3L()
 
 	/* Doubly-nested loop over atomic pairs */
 #pragma omp for reduction(+ : potEnergy)
-	for (j1 = 0; j1 < nAtom - 1; j1++)
+	for (int j1 = 0; j1 < nAtom - 1; j1++)
 	{
-		for (j2 = j1 + 1; j2 < nAtom; j2++)
+		double dr[3], rr = 0.0;
+		
+		for (int j2 = j1 + 1; j2 < nAtom; j2++)
 		{
 			/* Computes the squared atomic distance */
-			for (rr = 0.0, k = 0; k < 3; k++)
+			rr = 0.0;
+			for (k = 0; k < 3; k++)
 			{
 				dr[k] = r[j1][k] - r[j2][k];
 				/* Chooses the nearest image */
@@ -93,7 +94,8 @@ void ComputeAccelPN3L()
 
 // Once all threads have finished, we need to combine the results from each thread
 #pragma omp barrier
-	for (n = 0; n < nAtom; n++)
+#pragma omp for
+	for (int n = 0; n < nAtom; n++)
 	{
 		for (k = 0; k < 3; k++)
 		{

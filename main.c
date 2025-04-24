@@ -22,7 +22,7 @@
 #define A 0
 #define B 2
 #define C 10
-#define NUM_TESTS 2 //5
+#define NUM_TESTS 1 //5
 //#define MAX_NUM_PARTICLES (A * NUM_TESTS * NUM_TESTS + B * NUM_TESTS + C)
 //! TODO: Determine a good parameters for this to test a wide range of hardware configurations (various cache sizes, etc.)
 
@@ -108,7 +108,6 @@ int main()
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
         printf("Time, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_n3l();
@@ -118,14 +117,14 @@ int main()
     
     // OPENMP
     OPTION++;
-    printf("testing option %d\n", OPTION);
+    printf("testing option %d (Netwon's 3rd Law with OpenMP Multi-Threading)\n", OPTION);
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
+        clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
         // final_answer += *result; // need version of this so compiler doesn't optimize away
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
+        clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 /*
@@ -147,7 +146,7 @@ int main()
     */
 
     /* output times */
-    printf("%s", "# Atoms, Baseline, N3L, OpenMP, Cell List, GPU Cell\n");
+    printf("%s", "# Atoms, Baseline, N3L, N3L-OpenMP, Cell List, GPU Cell\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
