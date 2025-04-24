@@ -6,7 +6,8 @@
 
 #include "serial_trivial.h"
 #include "serial_N3L.c"
-//#include "parallel_N3L.c"
+#include "parallel_baseline.c"
+#include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
 
@@ -14,7 +15,7 @@
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
 //! Note: I have no idea how many time steps are needed or reasonable, I just picked a number
 //#define BOX_LENGTH 10.0f // The length of the box in which the particles are contained
-#define OPTIONS 3        // The number of different variants of the simulation
+#define OPTIONS 5        // The number of different variants of the simulation
 
 // The number of particles in the simulation
 // Number of particles = A * test_number * test_number + B * test_number + C
@@ -90,12 +91,12 @@ int main()
     final_answer = wakeup_delay();
 
     OPTION = 0;
-    printf("Testing option baseline serial\n");
+    printf("\nTesting option baseline serial\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
-        printf("Time, temperature, potential energy, total energy\n");
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_base();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -104,11 +105,12 @@ int main()
 
     // Newton's 3rd Law
     OPTION++;
-    printf("Testing option Newton's 3rd Law (USC)\n");
+    printf("\nTesting option Newton's 3rd Law (USC)\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Time, temperature, potential energy, total energy\n");
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_n3l();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -116,24 +118,46 @@ int main()
     }
     
     // OPENMP
-    /*
+
     OPTION++;
-    printf("Testing option Netwon's 3rd Law with OpenMP Multi-Threading\n");
+    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
+        printf("Testing size %ld\n", n);
+
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_base();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    OPTION++;
+    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }*/
+    }
+
+
 
     // Cell List 
     OPTION++;
-    printf("Testing option Cell Lists (USC)\n");
+    printf("\nTesting option Cell Lists (USC)\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
+        printf("Testing size %ld\n", n);
+
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_cell();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -141,7 +165,7 @@ int main()
     }
 
     /* output times */
-    printf("%s", "# Atoms, Baseline, N3L, N3L-OpenMP, Cell List, GPU Cell\n");
+    printf("\n\n# Atoms, Baseline, N3L, Baseline-OpenMP, N3L-OpenMP, Cell List, GPU Cell\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {

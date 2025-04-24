@@ -50,7 +50,15 @@ void HalfKickN3L();
 void ApplyBoundaryCondN3L();
 void EvalPropsN3L();
 
-/* OpenMP */
+/* Baeline OpenMP */
+void ComputeAccelPBase();
+void SingleStepPBase();
+void HalfKickPBase();
+void ApplyBoundaryCondPBase();
+void EvalPropsPBase();
+
+
+/* N3L OpenMP */
 void ComputeAccelPN3L();
 void SingleStepPN3L();
 void HalfKickPN3L();

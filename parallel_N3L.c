@@ -42,70 +42,70 @@ void ComputeAccelPN3L()
 
 	// Begin OpenMP parallel region
 #pragma omp parallel private(f, fcVal, ri2, ri6, r1, k)
-{
-	int nThreads = omp_get_num_threads();
-	int tid = omp_get_thread_num();
-	rrCut = RCUT * RCUT;
-
-	memset(ra_private[tid], 0, sizeof ra_private[0]); // Zero out this thread's private array
-
-// #pragma omp for private(n, k)
-// 	// Initialize acceleration to zero
-// 	for (n = 0; n < nAtom; n++)
-// 		for (k = 0; k < 3; k++)
-// 			ra[n][k] = 0.0;
-
-	/* Doubly-nested loop over atomic pairs */
-#pragma omp for reduction(+ : potEnergy)
-	for (int j1 = 0; j1 < nAtom - 1; j1++)
 	{
-		double dr[3], rr = 0.0;
-		
-		for (int j2 = j1 + 1; j2 < nAtom; j2++)
+		int nThreads = omp_get_num_threads();
+		int tid = omp_get_thread_num();
+		rrCut = RCUT * RCUT;
+
+		memset(ra_private[tid], 0, sizeof ra_private[0]); // Zero out this thread's private array
+
+		// #pragma omp for private(n, k)
+		// 	// Initialize acceleration to zero
+		// 	for (n = 0; n < nAtom; n++)
+		// 		for (k = 0; k < 3; k++)
+		// 			ra[n][k] = 0.0;
+
+		/* Doubly-nested loop over atomic pairs */
+#pragma omp for reduction(+ : potEnergy)
+		for (int j1 = 0; j1 < nAtom - 1; j1++)
 		{
-			/* Computes the squared atomic distance */
-			rr = 0.0;
-			for (k = 0; k < 3; k++)
+			double dr[3], rr = 0.0;
+
+			for (int j2 = j1 + 1; j2 < nAtom; j2++)
 			{
-				dr[k] = r[j1][k] - r[j2][k];
-				/* Chooses the nearest image */
-				dr[k] = dr[k] - SignR(RegionH[k], dr[k] - RegionH[k]) - SignR(RegionH[k], dr[k] + RegionH[k]);
-				rr = rr + dr[k] * dr[k];
-			}
-			/* Computes acceleration & potential within the cut-off distance */
-			if (rr < rrCut)
-			{
-				ri2 = 1.0 / rr;
-				ri6 = ri2 * ri2 * ri2;
-				r1 = sqrt(rr);
-				fcVal = 48.0 * ri2 * ri6 * (ri6 - 0.5) + Duc / r1;
+				/* Computes the squared atomic distance */
+				rr = 0.0;
 				for (k = 0; k < 3; k++)
 				{
-					f = fcVal * dr[k];
-
-					// Update the acceleration for this thread's private array - negates the need for atomic operations
-					ra_private[tid][j1][k] += f;
-					ra_private[tid][j2][k] -= f;
+					dr[k] = r[j1][k] - r[j2][k];
+					/* Chooses the nearest image */
+					dr[k] = dr[k] - SignR(RegionH[k], dr[k] - RegionH[k]) - SignR(RegionH[k], dr[k] + RegionH[k]);
+					rr = rr + dr[k] * dr[k];
 				}
-				potEnergy = potEnergy + 4.0 * ri6 * (ri6 - 1.0) - Uc - Duc * (r1 - RCUT);
+				/* Computes acceleration & potential within the cut-off distance */
+				if (rr < rrCut)
+				{
+					ri2 = 1.0 / rr;
+					ri6 = ri2 * ri2 * ri2;
+					r1 = sqrt(rr);
+					fcVal = 48.0 * ri2 * ri6 * (ri6 - 0.5) + Duc / r1;
+					for (k = 0; k < 3; k++)
+					{
+						f = fcVal * dr[k];
+
+						// Update the acceleration for this thread's private array - negates the need for atomic operations
+						ra_private[tid][j1][k] += f;
+						ra_private[tid][j2][k] -= f;
+					}
+					potEnergy = potEnergy + 4.0 * ri6 * (ri6 - 1.0) - Uc - Duc * (r1 - RCUT);
+				}
 			}
 		}
-	}
 
-// Once all threads have finished, we need to combine the results from each thread
+		// Once all threads have finished, we need to combine the results from each thread
 #pragma omp barrier
 #pragma omp for
-	for (int n = 0; n < nAtom; n++)
-	{
-		for (k = 0; k < 3; k++)
+		for (int n = 0; n < nAtom; n++)
 		{
-			double sum = 0;
-			for (int t = 0; t < nThreads; t++)
-				sum += ra_private[t][n][k];
-			ra[n][k] = sum;
+			for (k = 0; k < 3; k++)
+			{
+				double sum = 0;
+				for (int t = 0; t < nThreads; t++)
+					sum += ra_private[t][n][k];
+				ra[n][k] = sum;
+			}
 		}
-	}
-} // End of OpenMP parallel region
+	} // End of OpenMP parallel region
 
 	free(ra_private); // Free the private arrays
 }
