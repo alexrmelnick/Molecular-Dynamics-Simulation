@@ -90,6 +90,7 @@ int main()
     wakeup_delay();
     final_answer = wakeup_delay();
 
+    // Baseline
     OPTION = 0;
     printf("\nTesting option baseline serial\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
@@ -117,8 +118,7 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
     
-    // OPENMP
-
+    // OPENMP - Baseline
     OPTION++;
     printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
@@ -133,6 +133,7 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
+    // OPENMP - Newton's 3rd Law
     OPTION++;
     printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
@@ -146,8 +147,6 @@ int main()
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
-
-
 
     // Cell List 
     OPTION++;
