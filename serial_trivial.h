@@ -50,6 +50,12 @@ void HalfKickN3L();
 void ApplyBoundaryCondN3L();
 void EvalPropsN3L();
 
+void ComputeAccelPN3L();
+void SingleStepPN3L();
+void HalfKickPN3L();
+void ApplyBoundaryCondPN3L();
+void EvalPropsPN3L();
+
 /* Cells O(N) Implementation */
 /*void ComputeAccel();
 void SingleStep();
