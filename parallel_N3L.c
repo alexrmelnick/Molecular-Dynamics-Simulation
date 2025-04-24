@@ -1,4 +1,4 @@
-#include "parallel_N3L.h"
+//#include "parallel_N3L.h"
 #include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,15 +23,15 @@ int parallel_N3L()
 	// This loop cannot be parallelized because each iteration depends on the previous one
 	for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
 	{
-		SingleStep();
+		SingleStepPN3L();
 		if (stepCount % STEPAVG == 0)
-			EvalProps();
+			EvalPropsPN3L();
 	}
 	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
-void ComputeAccel()
+void ComputeAccelPN3L()
 {
 	/*------------------------------------------------------------------------------
 		Acceleration, ra, are computed as a function of atomic coordinates, r,
@@ -111,25 +111,25 @@ void ComputeAccel()
 /*----------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
-void SingleStep()
+void SingleStepPN3L()
 {
 	/*------------------------------------------------------------------------------
 		r & rv are propagated by DeltaT in time using the velocity-Verlet method.
 	------------------------------------------------------------------------------*/
 	int n, k;
 
-	HalfKick(); /* First half kick to obtain v(t+Dt/2) */
+	HalfKickPN3L(); /* First half kick to obtain v(t+Dt/2) */
 #pragma omp parallel for private(n, k)
 	for (n = 0; n < nAtom; n++) /* Update atomic coordinates to r(t+Dt) */
 		for (k = 0; k < 3; k++)
 			r[n][k] = r[n][k] + DELTAT * rv[n][k];
-	ApplyBoundaryCond();
-	ComputeAccel(); /* Computes new accelerations, a(t+Dt) */
-	HalfKick();		/* Second half kick to obtain v(t+Dt) */
+	ApplyBoundaryCondPN3L();
+	ComputeAccelPN3L(); /* Computes new accelerations, a(t+Dt) */
+	HalfKickPN3L();		/* Second half kick to obtain v(t+Dt) */
 }
 
 /*----------------------------------------------------------------------------*/
-void HalfKick()
+void HalfKickPN3L()
 {
 	/*------------------------------------------------------------------------------
 		Accelerates atomic velocities, rv, by half the time step.
@@ -142,7 +142,7 @@ void HalfKick()
 }
 
 /*----------------------------------------------------------------------------*/
-void ApplyBoundaryCond()
+void ApplyBoundaryCondPN3L()
 {
 	/*------------------------------------------------------------------------------
 		Applies periodic boundary conditions to atomic coordinates.
@@ -155,7 +155,7 @@ void ApplyBoundaryCond()
 }
 
 /*----------------------------------------------------------------------------*/
-void EvalProps()
+void EvalPropsPN3L()
 {
 	/*------------------------------------------------------------------------------
 		Evaluates physical properties: kinetic, potential & total energies.
