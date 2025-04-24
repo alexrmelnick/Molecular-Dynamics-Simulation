@@ -37,7 +37,7 @@ void ComputeAccelPN3L()
 	double f, fcVal, rrCut, ri2, ri6, r1;
 	int k;
 	int maxThreads = omp_get_max_threads();
-	double (*ra_private)[nAtom][3] = malloc(sizeof *ra_private * maxThreads); // Allocate private arrays for each thread so we don't have to use super slow atomic operations
+	double (*ra_private)[nAtom][3] = (double (*)[nAtom][3])calloc(maxThreads, sizeof *ra_private); // Allocate private arrays for each thread so we don't have to use super slow atomic operations
 	potEnergy = 0.0;
 
 	// Begin OpenMP parallel region

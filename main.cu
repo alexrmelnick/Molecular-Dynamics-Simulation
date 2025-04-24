@@ -16,7 +16,7 @@
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
 //! Note: I have no idea how many time steps are needed or reasonable, I just picked a number
 //#define BOX_LENGTH 10.0f // The length of the box in which the particles are contained
-#define OPTIONS 5        // The number of different variants of the simulation
+#define OPTIONS 6        // The number of different variants of the simulation
 
 // The number of particles in the simulation
 // Number of particles = A * test_number * test_number + B * test_number + C
@@ -164,15 +164,30 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
+    // GPU Baseline
+    OPTION++;
+    printf("\nTesting option CUDA baseline\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += serial_cell();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
     /* output times */
-    printf("\n\n# Atoms, Baseline, N3L, Baseline-OpenMP, N3L-OpenMP, Cell List, GPU Cell\n");
+    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tCell List,\tGPU Baseline\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
-        printf("%.0f,  ", 4*pow((A * i * i + B * i + C),3));
+        printf("%.0f,\t", 4*pow((A * i * i + B * i + C),3));
         for (j = 0; j < OPTIONS; j++) {
             if (j != 0) {
-            printf(", ");
+            printf(",\t\t");
             }
             printf("%.4f", time_stamp[j][i]);
         }
