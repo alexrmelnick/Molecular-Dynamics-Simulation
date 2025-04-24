@@ -5,7 +5,9 @@
 #include <unistd.h>
 
 #include "serial_trivial.h"
-#include "serial_trivial.c"
+#include "serial_N3L.c"
+#include "parallel_N3L.c"
+#include "serial_baseline.c"
 #include "serial_cell.c"
 
 //#define DIMENSIONS 2        // 2D simulation
