@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "serial_trivial.h"
+#include "cpu.h"
+#include "gpu.cuh"
 #include "serial_N3L.c"
 #include "parallel_baseline.c"
 #include "parallel_N3L.c"

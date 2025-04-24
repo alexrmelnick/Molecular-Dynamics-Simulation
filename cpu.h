@@ -1,5 +1,7 @@
 /*******************************************************************************
-File md.h is an include file for program md.c.
+
+Header file for the CPU implementations (Single-Threaded and Multi-Threaded) of Molecular Dynamics simulation
+
 *******************************************************************************/
 #define NMAX 100000  /* Maximum number of atoms which can be simulated */
 #define RCUT 2.5     /* Potential cut-off length */
@@ -35,21 +37,42 @@ void RandVec3(double *p, double *seed) {
 	p[2] = 1.0 - 2.0*s; s = 2.0*sqrt(1.0 - s); p[0] = s*x; p[1] = s*y;
 }
 
-/* Serial O(N^2) Implementation */
-//void InitParams();
-//void InitConf();
-void ComputeAccel();
-void SingleStep();
-void HalfKick();
-void ApplyBoundaryCond();
-void EvalProps();
+
+/* Serial Baseline O(N^2) Implementation */
+void ComputeAccelBase();
+void SingleStepBase();
+void HalfKickBase();
+void ApplyBoundaryCondBase();
+void EvalPropsBase();
+
+/* Serial Newton's 3rd Law O(N^2) Implementation */
+void ComputeAccelN3L();
+void SingleStepN3L();
+void HalfKickN3L();
+void ApplyBoundaryCondN3L();
+void EvalPropsN3L();
+
+/* Baeline OpenMP */
+void ComputeAccelPBase();
+void SingleStepPBase();
+void HalfKickPBase();
+void ApplyBoundaryCondPBase();
+void EvalPropsPBase();
+
+
+/* N3L OpenMP */
+void ComputeAccelPN3L();
+void SingleStepPN3L();
+void HalfKickPN3L();
+void ApplyBoundaryCondPN3L();
+void EvalPropsPN3L();
 
 /* Cells O(N) Implementation */
-/*void ComputeAccel();
-void SingleStep();
-void HalfKick();
-void ApplyBoundaryCond();
-void EvalProps();*/
+void ComputeAccelCell();
+void SingleStepCell();
+void HalfKickCell();
+void ApplyBoundaryCondCell();
+void EvalPropsCell();
 
 /* Constants ******************************************************************/
 
@@ -70,6 +93,7 @@ double potEnergy;     /* Potential energy */
 double totEnergy;     /* Total energy */
 double temperature;   /* Current temperature */
 int stepCount;        /* Current time step */
+int head[NCLMAX];     /* Headers for the linked cell lists */
 int lscl[NMAX];       /* Linked cell lists */
 int lc[3];            /* Number of cells in the x|y|z direction */
 double rc[3];         /* Length of a cell in the x|y|z direction */
