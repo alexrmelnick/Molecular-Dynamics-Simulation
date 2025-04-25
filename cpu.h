@@ -59,7 +59,6 @@ void HalfKickPBase();
 void ApplyBoundaryCondPBase();
 void EvalPropsPBase();
 
-
 /* N3L OpenMP */
 void ComputeAccelPN3L();
 void SingleStepPN3L();
@@ -68,6 +67,7 @@ void ApplyBoundaryCondPN3L();
 void EvalPropsPN3L();
 
 /* Cells O(N) Implementation */
+void SortCells();
 void ComputeAccelCell();
 void SingleStepCell();
 void HalfKickCell();
@@ -93,7 +93,7 @@ double potEnergy;     /* Potential energy */
 double totEnergy;     /* Total energy */
 double temperature;   /* Current temperature */
 int stepCount;        /* Current time step */
-int head[NCLMAX];     /* Headers for the linked cell lists */
+int head_tail[NCLMAX][2];     /* Headers for the linked cell lists */
 int lscl[NMAX];       /* Linked cell lists */
 int lc[3];            /* Number of cells in the x|y|z direction */
 double rc[3];         /* Length of a cell in the x|y|z direction */

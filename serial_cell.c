@@ -7,11 +7,41 @@ Leverage cell lists - use preallocated arrays as opposed to linked-lists
 #include <math.h>
 
 int serial_cell() {
+	int sortstep = 5;
+	// Make cell arrays
+	SortCells();
 	for (stepCount=1; stepCount<=STEPLIMIT; stepCount++) {
 		SingleStepCell(); 
 		if (stepCount%STEPAVG == 0) EvalPropsCell();
+		if (stepCount%sortstep == 0) SortCells();
 	}
 	return 0;
+}
+
+/*----------------------------------------------------------------------------*/
+void SortCells() {
+/*------------------------------------------------------------------------------
+	Fill in any gaps
+------------------------------------------------------------------------------*/
+	int x, y, z, head_ind, tail_ind;
+
+	int total_cells = lc[0] * lc[1] * lc[2];
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+
+		while(tail_ind > head_ind) {
+			if(r[head_ind][0] == EMPTY) {
+				// move tail-1 to head
+				// set tail-1 to zeros
+				// decrement tail
+			}
+			head_ind++;
+		}
+
+		head_tail[c][1] = tail_ind;
+	}
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -23,6 +53,7 @@ void ComputeAccelCell() {
 ------------------------------------------------------------------------------*/
 	int i,j,a,lcyz,lcxyz,mc[3],c,mc1[3],c1;
 	double dr[3],rr,ri2,ri6,r1,rrCut,fcVal,f,rshift[3];
+	int inner_cell_start, inner_cell_end, neighbor_cell_start, neighbor_cell_end;
 
 	/* Reset the potential & forces */
 	for (i=0; i<nAtom; i++) for (a=0; a<3; a++) ra[i][a] = 0.0;
@@ -63,7 +94,10 @@ void ComputeAccelCell() {
 		/* Calculate a scalar cell index */
 		c = mc[0]*lcyz+mc[1]*lc[2]+mc[2];
 		/* Skip this cell if empty */
-		if (head[c] == EMPTY) continue;
+		if (head_tail[c][0] == head_tail[c][1]) continue;
+			
+		inner_cell_start = head_tail[c][0];
+		inner_cell_end = head_tail[c][1];
 
 		/* Scan the neighbor cells (including itself) of cell c */
 		for (mc1[0]=mc[0]-1; mc1[0]<=mc[0]+1; (mc1[0])++)
@@ -83,18 +117,20 @@ void ComputeAccelCell() {
 				+((mc1[1]+lc[1])%lc[1])*lc[2]
 				+((mc1[2]+lc[2])%lc[2]);
 			/* Skip this neighbor cell if empty */
-			if (head[c1] == EMPTY) continue;
+			if (head_tail[c1][0] == head_tail[c1][1]) continue;
+
+			neighbor_cell_start = head_tail[c1][0];
+			neighbor_cell_end = head_tail[c1][1];
 
 			/* Scan atom i in cell c */
-			i = head[c];
-			while (i != EMPTY) {
+			for(i = inner_cell_start; i < inner_cell_end; i++) {
+				// if empty slot, continue to the next
+				if(r[i][0] == EMPTY) continue;
 
-				/* Scan atom j in cell c1 */
-				j = head[c1];
-				while (j != EMPTY) {
-
-					/* Avoid double counting of pairs */
-					if (i < j) {
+				for(j = neighbor_cell_start; i < neighbor_cell_end; i++) {
+					// if empty slot, continue to the next
+					if(r[j][0] == EMPTY) continue;
+					if(i < j) {
 						/* Pair vector dr = r[i]-r[j] */
 						for (rr=0.0, a=0; a<3; a++) {
 							dr[a] = r[i][a]-(r[j][a]+rshift[a]);
@@ -112,14 +148,9 @@ void ComputeAccelCell() {
 							}
 							potEnergy += 4.0*ri6*(ri6-1.0) - Uc - Duc*(r1-RCUT);
 						}
-					} /* Endif i<j */
-
-					j = lscl[j];
-				} /* Endwhile j not empty */
-
-				i = lscl[i];
-			} /* Endwhile i not empty */
-
+					}
+				}
+			}
 		} /* Endfor neighbor cells, c1 */
 	} /* Endfor central cell, c */
 }
