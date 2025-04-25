@@ -6,8 +6,8 @@
 
 #include "cpu.h"
 #include "serial_N3L.c"
-#include "parallel_baseline.c"
-#include "parallel_N3L.c"
+//#include "parallel_baseline.c"
+//#include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
 
@@ -99,7 +99,7 @@ int main()
         printf("Testing size %ld\n", n);
         printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_base();
+        final_answer += serial_base(); 
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
@@ -197,7 +197,7 @@ void InitParams(int ideal_num_atoms)
     /*------------------------------------------------------------------------------
         Initializes parameters.
     ------------------------------------------------------------------------------*/
-    int k;
+    int k,c;
 	double rr,ri2,ri6,r1;
 
 	double num_cells = cbrt(ideal_num_atoms/4); 
@@ -220,6 +220,12 @@ void InitParams(int ideal_num_atoms)
 		lc[k] = Region[k]/RCUT; 
 		rc[k] = Region[k]/lc[k];
 	}
+
+    /*int total_cells = lc[0] * lc[1] * lc[2];
+    for (c = 0; c < total_cells; c++) {
+		head_tail[c][0] = 0;
+		head_tail[c][1] = 0;
+	}*/
 
 	/* Constants for potential truncation */
 	rr = RCUT*RCUT; ri2 = 1.0/rr; ri6 = ri2*ri2*ri2; r1=sqrt(rr);

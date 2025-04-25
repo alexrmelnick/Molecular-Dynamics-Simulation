@@ -68,6 +68,7 @@ void EvalPropsPN3L();
 
 /* Cells O(N) Implementation */
 void SortCells();
+void CompressCells();
 void ComputeAccelCell();
 void SingleStepCell();
 void HalfKickCell();
@@ -97,4 +98,7 @@ int head_tail[NCLMAX][2];     /* Headers for the linked cell lists */
 int lscl[NMAX];       /* Linked cell lists */
 int lc[3];            /* Number of cells in the x|y|z direction */
 double rc[3];         /* Length of a cell in the x|y|z direction */
+double r_cell[NMAX][3];  
+double rv_cell[NMAX][3];   
+double ra_cell[NMAX][3];
 /******************************************************************************/

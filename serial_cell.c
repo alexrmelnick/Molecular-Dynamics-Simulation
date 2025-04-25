@@ -13,17 +13,58 @@ int serial_cell() {
 	for (stepCount=1; stepCount<=STEPLIMIT; stepCount++) {
 		SingleStepCell(); 
 		if (stepCount%STEPAVG == 0) EvalPropsCell();
-		if (stepCount%sortstep == 0) SortCells();
+		if (stepCount%sortstep == 0) CompressCells();
 	}
 	return 0;
 }
 
+
 /*----------------------------------------------------------------------------*/
 void SortCells() {
 /*------------------------------------------------------------------------------
+	Sort atoms into cells
+------------------------------------------------------------------------------*/
+	int c, i, a, tail, mc[3];
+
+	// define bounds
+	int lcyz = lc[1]*lc[2];
+	int total_cells = lc[0] * lcyz;
+	int buffer_len = nAtom / total_cells * 2;
+	printf("SIZE OF BUFFER %d for %d number of cells\n", buffer_len, total_cells);
+
+	// initialize head_tail
+	for (c = 0; c < total_cells; c++) {
+		head_tail[c][0] = c*buffer_len;
+		head_tail[c][1] = c*buffer_len;
+		//printf("head_tail[%d] = %d, %d\n",c,head_tail[c][0],head_tail[c][1]);
+	}
+
+	// sort to cell arrays
+	for (i = 0; i < nAtom; i++) {
+		for (a=0; a<3; a++) mc[a] = r[i][a]/rc[a];
+		c = mc[0]*lcyz+mc[1]*lc[2]+mc[2];
+
+		tail = head_tail[c][1];
+		for(a=0; a<3; a++) {
+			r_cell[tail][a] = r[i][a];
+		}
+		for(a=0; a<3; a++) {
+			rv_cell[tail][a] = rv[i][a];
+		}
+		for(a=0; a<3; a++) {
+			ra_cell[tail][a] = ra[i][a];
+		}
+		head_tail[c][1]++;
+	}
+}
+
+
+/*----------------------------------------------------------------------------*/
+void CompressCells() {
+/*------------------------------------------------------------------------------
 	Fill in any gaps
 ------------------------------------------------------------------------------*/
-	int x, y, z, head_ind, tail_ind;
+	int c, i, head_ind, tail_ind;
 
 	int total_cells = lc[0] * lc[1] * lc[2];
 	for (c = 0; c < total_cells; c++) {
@@ -31,17 +72,27 @@ void SortCells() {
 		tail_ind = head_tail[c][1];
 
 		while(tail_ind > head_ind) {
-			if(r[head_ind][0] == EMPTY) {
-				// move tail-1 to head
-				// set tail-1 to zeros
-				// decrement tail
+			if(r_cell[head_ind][0] == EMPTY) {
+				// move [tail-1] to head and set [tail-1] to zero
+				for(i=0; i<3; i++) {
+					r_cell[head_ind][i] = r_cell[tail_ind-1][i];
+					r_cell[tail_ind-1][i] = EMPTY;
+				}
+				for(i=0; i<3; i++) {
+					rv_cell[head_ind][i] = rv_cell[tail_ind-1][i];
+					rv_cell[tail_ind-1][i] = EMPTY;
+				}
+				for(i=0; i<3; i++) {
+					ra_cell[head_ind][i] = ra_cell[tail_ind-1][i];
+					ra_cell[tail_ind-1][i] = EMPTY;
+				}
+				tail_ind--;
 			}
 			head_ind++;
 		}
-
+		// update tail pointer
 		head_tail[c][1] = tail_ind;
 	}
-
 }
 
 /*----------------------------------------------------------------------------*/
@@ -51,36 +102,47 @@ void ComputeAccelCell() {
 	using the Lennard-Jones potential.  The sum of atomic potential energies,
 	potEnergy, is also computed.   
 ------------------------------------------------------------------------------*/
-	int i,j,a,lcyz,lcxyz,mc[3],c,mc1[3],c1;
+	int i,j,a,lcyz,total_cells,mc[3],c,mc1[3],c1,head_ind,tail_ind,c_new,tail_new;
 	double dr[3],rr,ri2,ri6,r1,rrCut,fcVal,f,rshift[3];
 	int inner_cell_start, inner_cell_end, neighbor_cell_start, neighbor_cell_end;
 
 	/* Reset the potential & forces */
-	for (i=0; i<nAtom; i++) for (a=0; a<3; a++) ra[i][a] = 0.0;
 	potEnergy = 0.0;
 
-	/* Make a linked-cell list, lscl--------------------------------------------*/
-
+	/* Move any atoms if necessary and set accel to zero ---------------------*/
 	lcyz = lc[1]*lc[2];
-	lcxyz = lc[0]*lcyz;
+	total_cells = lc[0] * lcyz;
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+		for(i=head_ind; i<tail_ind; i++) {
+			if (r_cell[i][0] == EMPTY) continue;
+			for (a=0; a<3; a++) mc[a] = r_cell[i][a]/rc[a];
+			for (a=0; a<3; a++) ra_cell[i][a] = 0.0;
+			/* Translate the vector cell index, mc, to a scalar cell index */
+			c_new = mc[0]*lcyz+mc[1]*lc[2]+mc[2];
 
-	/* Reset the headers, head */
-	for (c=0; c<lcxyz; c++) head[c] = EMPTY;
+			//if different, move
+			if(c_new != c) {
+				//printf("MOVING");
+				tail_new = head_tail[c_new][1];
+				for(a=0; a<3; a++) {
+					r_cell[tail_new][a] = r_cell[i][a];
+					r_cell[i][a] = EMPTY;
+				}
+				for(a=0; a<3; a++) {
+					rv_cell[tail_new][a] = rv_cell[i][a];
+					rv_cell[i][a] = EMPTY;
+				}
+				for(a=0; a<3; a++) {
+					ra_cell[tail_new][a] = ra_cell[i][a];
+					ra_cell[i][a] = EMPTY;
+				}
+				head_tail[c_new][1]++;
+			}
+		}
+	}
 
-	/* Scan atoms to construct headers, head, & linked lists, lscl */
-
-	for (i=0; i<nAtom; i++) {
-		for (a=0; a<3; a++) mc[a] = r[i][a]/rc[a];
-
-		/* Translate the vector cell index, mc, to a scalar cell index */
-		c = mc[0]*lcyz+mc[1]*lc[2]+mc[2];
-
-		/* Link to the previous occupant (or EMPTY if you're the 1st) */
-		lscl[i] = head[c];
-
-		/* The last one goes to the header */
-		head[c] = i;
-	} /* Endfor atom i */
 
 	/* Calculate pair interaction-----------------------------------------------*/
 
@@ -122,18 +184,20 @@ void ComputeAccelCell() {
 			neighbor_cell_start = head_tail[c1][0];
 			neighbor_cell_end = head_tail[c1][1];
 
+			//printf("HERE!");
+
 			/* Scan atom i in cell c */
 			for(i = inner_cell_start; i < inner_cell_end; i++) {
 				// if empty slot, continue to the next
-				if(r[i][0] == EMPTY) continue;
+				if(r_cell[i][0] == EMPTY) continue;
 
-				for(j = neighbor_cell_start; i < neighbor_cell_end; i++) {
+				for(j = neighbor_cell_start; j < neighbor_cell_end; j++) {
 					// if empty slot, continue to the next
-					if(r[j][0] == EMPTY) continue;
+					if(r_cell[j][0] == EMPTY) continue;
 					if(i < j) {
 						/* Pair vector dr = r[i]-r[j] */
 						for (rr=0.0, a=0; a<3; a++) {
-							dr[a] = r[i][a]-(r[j][a]+rshift[a]);
+							dr[a] = r_cell[i][a]-(r_cell[j][a]+rshift[a]);
 							rr += dr[a]*dr[a];
 						}
 
@@ -143,8 +207,8 @@ void ComputeAccelCell() {
 							fcVal = 48.0*ri2*ri6*(ri6-0.5) + Duc/r1;
 							for (a=0; a<3; a++) {
 								f = fcVal*dr[a];
-								ra[i][a] += f;
-								ra[j][a] -= f;
+								ra_cell[i][a] += f;
+								ra_cell[j][a] -= f;
 							}
 							potEnergy += 4.0*ri6*(ri6-1.0) - Uc - Duc*(r1-RCUT);
 						}
@@ -163,17 +227,25 @@ void SingleStepCell() {
 /*------------------------------------------------------------------------------
 	r & rv are propagated by DeltaT in time using the velocity-Verlet method.
 ------------------------------------------------------------------------------*/
-	int n,k;
+	int c,k,i;
+	int head_ind, tail_ind;
 	//printf("single step");
 	HalfKickCell(); /* First half kick to obtain v(t+Dt/2) */
 	//printf("half kick");
-	for (n=0; n<nAtom; n++) /* Update atomic coordinates to r(t+Dt) */
-		for (k=0; k<3; k++) r[n][k] = r[n][k] + DELTAT*rv[n][k];
+	int total_cells = lc[0] * lc[1] * lc[2];
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+		for(i=head_ind; i<tail_ind; i++) {
+			if (r_cell[i][0] == EMPTY) continue;
+			for (k=0; k<3; k++) r_cell[i][k] = r_cell[i][k] + DELTAT*rv_cell[i][k];
+		}
+	}
 	//printf("update");
 	ApplyBoundaryCondCell();
 	//printf("boundary");
 	ComputeAccelCell(); /* Computes new accelerations, a(t+Dt) */
-	//printf("computeaccel");
+	//printf("computeaccel\n");
 	HalfKickCell(); /* Second half kick to obtain v(t+Dt) */
 }
 
@@ -182,9 +254,19 @@ void HalfKickCell() {
 /*------------------------------------------------------------------------------
 	Accelerates atomic velocities, rv, by half the time step.
 ------------------------------------------------------------------------------*/
-	int n,k;
-	for (n=0; n<nAtom; n++)
-		for (k=0; k<3; k++) rv[n][k] = rv[n][k] + DeltaTH*ra[n][k];
+	int c,k,i;
+	int head_ind, tail_ind;
+
+	int total_cells = lc[0] * lc[1] * lc[2];
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+		for(i=head_ind; i<tail_ind; i++) {
+			if (r_cell[i][0] == EMPTY) continue;
+			for (k=0; k<3; k++) rv_cell[i][k] = rv_cell[i][k] + DeltaTH*ra_cell[i][k];
+		}
+	}
+		
 }
 
 /*----------------------------------------------------------------------------*/
@@ -192,11 +274,20 @@ void ApplyBoundaryCondCell() {
 /*------------------------------------------------------------------------------
 	Applies periodic boundary conditions to atomic coordinates.
 ------------------------------------------------------------------------------*/
-	int n,k;
-	for (n=0; n<nAtom; n++) 
-		for (k=0; k<3; k++) 
-			r[n][k] = r[n][k] - SignR(RegionH[k],r[n][k])
-			                  - SignR(RegionH[k],r[n][k]-Region[k]);
+	int c,i,k;
+	int head_ind, tail_ind;
+
+	int total_cells = lc[0] * lc[1] * lc[2];
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+		for(i=head_ind; i<tail_ind; i++) {
+			if (r_cell[i][0] == EMPTY) continue;
+			for (k=0; k<3; k++) 
+				r_cell[i][k] = r_cell[i][k] - SignR(RegionH[k],r_cell[i][k])
+								- SignR(RegionH[k],r_cell[i][k]-Region[k]);
+		}
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -205,15 +296,21 @@ void EvalPropsCell() {
 	Evaluates physical properties: kinetic, potential & total energies.
 ------------------------------------------------------------------------------*/
 	double vv;
-	int n,k;
+	int c,k,i;
+	int head_ind, tail_ind;
 
-	kinEnergy = 0.0;
-	for (n=0; n<nAtom; n++) {
-		vv = 0.0;
-		for (k=0; k<3; k++)
-			vv = vv + rv[n][k]*rv[n][k];
-		kinEnergy = kinEnergy + vv;
+	int total_cells = lc[0] * lc[1] * lc[2];
+	for (c = 0; c < total_cells; c++) {
+		head_ind = head_tail[c][0];
+		tail_ind = head_tail[c][1];
+		for(i=head_ind; i<tail_ind; i++) {
+			if (r_cell[i][0] == EMPTY) continue;
+			vv = 0.0;
+			for (k=0; k<3; k++) vv = vv + rv_cell[i][k]*rv_cell[i][k];
+			kinEnergy = kinEnergy + vv;
+		}
 	}
+	
 	kinEnergy *= (0.5/nAtom);
 	potEnergy /= nAtom;
 	totEnergy = kinEnergy + potEnergy;
