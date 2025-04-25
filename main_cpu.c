@@ -125,7 +125,6 @@ int main()
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
-
         printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_base();
@@ -140,7 +139,6 @@ int main()
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
-
         printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
@@ -155,7 +153,6 @@ int main()
     {
         InitAll(n);
         printf("Testing size %ld\n", n);
-
         printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_cell();
