@@ -7,6 +7,7 @@ Baseline Implementation in CUDA!
 #include <math.h>
 #include <cuda_runtime.h>
 
+
 int gpu_base()
 {
 	// int stepCount;
@@ -118,6 +119,33 @@ void ApplyBoundaryCondBaseCUDA()
 	cudaFree(d_r);
 }
 
+void UpdatePositionCUDA()
+{
+    size_t bytes = nAtom * 3 * sizeof(double);
+    double *d_r = nullptr, *d_rv = nullptr;
+
+    // Allocate & copy data to device
+    cudaMalloc(&d_r,  bytes);
+    cudaMalloc(&d_rv, bytes);
+	cudaMemcpy(d_r,  r,  bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_rv, rv, bytes, cudaMemcpyHostToDevice);
+
+    // Launch kernel
+    int grid = (nAtom + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    UpdatePositionKernel<<<grid, BLOCK_SIZE>>>(
+        d_r,      // device positions
+        d_rv,     // device velocities
+        nAtom,    // atom count
+        DELTAT    // timestep
+    );
+    cudaDeviceSynchronize();
+
+    // Copy results back and free
+    cudaMemcpy(r, d_r, bytes, cudaMemcpyDeviceToHost);
+    cudaFree(d_r);
+    cudaFree(d_rv);
+}
+
 // Compute accelerations (Baseline O(N^2))
 __global__ void ComputeAccelBaseKernel(
 	const double *r,
@@ -168,7 +196,7 @@ __global__ void ComputeAccelBaseKernel(
 	ra[j1 * 3 + 2] = az;
 }
 
-// Velocity half-kick (v += Δt/2 * a)
+// Velocity half-kick (v += deltat/2 * a)
 __global__ void HalfKickBaseKernel(
 	double *rv,
 	const double *ra,
@@ -183,7 +211,7 @@ __global__ void HalfKickBaseKernel(
 	rv[idx * 3 + 2] += DeltaTH * ra[idx * 3 + 2];
 }
 
-// Position update (r += Δt * v)
+// Position update (r += deltat * v)
 __global__ void UpdatePositionKernel(
 	double *r,
 	const double *rv,

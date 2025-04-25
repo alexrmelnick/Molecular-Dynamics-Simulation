@@ -6,6 +6,11 @@ Header file for the CUDA implementations (Single-Threaded and Multi-Threaded) of
 
 #define BLOCK_SIZE 256
 
+// replicate cpu’s SignR
+static __device__ double signR_device(double v, double x) {
+    return (x > 0.0) ? v : -v;
+}
+
 // Device (GPU) kernel declarations for Baseline (O(N^2)) implementation
 __global__ void ComputeAccelBaseKernel(
     const double *r,       // positions: flattened nAtom x 3 array
@@ -75,6 +80,9 @@ __global__ void HalfKickCellKernel(
 void ComputeAccelBaseCUDA();
 void SingleStepBaseCUDA();
 void EvalPropsBaseCUDA();
+void HalfKickBaseCUDA();	  /* First half kick to obtain v(t+Dt/2) */
+void UpdatePositionCUDA(); /* Update atomic coordinates to r(t+Dt) */
+void ApplyBoundaryCondBaseCUDA();
 
 // Newton's 3rd Law
 void ComputeAccelN3LCUDA();

@@ -11,6 +11,7 @@
 #include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
+#include "GPU_baseline.cu"
 
 //#define DIMENSIONS 2        // 2D simulation
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
