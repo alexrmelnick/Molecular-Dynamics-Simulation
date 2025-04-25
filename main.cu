@@ -11,6 +11,7 @@
 #include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
+#include "GPU_baseline.cu"
 
 //#define DIMENSIONS 2        // 2D simulation
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
@@ -174,7 +175,7 @@ int main()
 
         printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
-        final_answer += serial_cell();
+        final_answer += gpu_base();
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
