@@ -18,7 +18,8 @@ __global__ void ComputeAccelBaseKernel(
     int nAtom,
     double3 RegionH,
     double Duc,
-    double Uc
+    double Uc,
+    double *potEnergy
 );
 __global__ void HalfKickBaseKernel(
     double *rv,            // velocities

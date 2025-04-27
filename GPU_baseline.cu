@@ -10,141 +10,82 @@ Baseline Implementation in CUDA!
 
 int gpu_base()
 {
-	// int stepCount;
-	for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
-	{
-		SingleStepBaseCUDA();
-		if (stepCount % STEPAVG == 0)
-			EvalPropsBase(); // Note that this uses the CPU version of EvalPropsBase since we are only using this to verify the correctness of the GPU code.
-	}
-	return 0;
-}
-
-/*----------------------------------------------------------------------------*/
-void ComputeAccelBaseCUDA()
-{
-	/*------------------------------------------------------------------------------
-
-	Sets up and launches the kernel to compute accelerations, ra, on the GPU.
-
-	------------------------------------------------------------------------------*/
-	size_t bytes = nAtom * 3 * sizeof(double);
-	double *d_r = nullptr, *d_ra = nullptr;
-
-	cudaMalloc(&d_r, bytes);
-	cudaMalloc(&d_ra, bytes);
-	cudaMemcpy(d_r, r, bytes, cudaMemcpyHostToDevice);
-	cudaMemset(d_ra, 0, bytes);
-
-	int grid = (nAtom + BLOCK_SIZE - 1) / BLOCK_SIZE;
-	ComputeAccelBaseKernel<<<grid, BLOCK_SIZE>>>(
-		d_r,
-		d_ra,
-		nAtom,
-		make_double3(RegionH[0], RegionH[1], RegionH[2]),
-		Duc,
-		Uc);
-	cudaDeviceSynchronize();
-
-	cudaMemcpy(ra, d_ra, bytes, cudaMemcpyDeviceToHost);
-	cudaFree(d_r);
-	cudaFree(d_ra);
-}
-
-/*----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------*/
-void SingleStepBaseCUDA()
-{
-	/*------------------------------------------------------------------------------
-		r & rv are propagated by DeltaT in time using the velocity-Verlet method.
-	------------------------------------------------------------------------------*/
-	int n, k;
-
-	HalfKickBaseCUDA();	  /* First half kick to obtain v(t+Dt/2) */
-	UpdatePositionCUDA(); /* Update atomic coordinates to r(t+Dt) */
-	ApplyBoundaryCondBaseCUDA();
-	ComputeAccelBaseCUDA(); /* Computes new accelerations, a(t+Dt) */
-	HalfKickBaseCUDA();		/* Second half kick to obtain v(t+Dt) */
-}
-
-/*----------------------------------------------------------------------------*/
-void HalfKickBaseCUDA()
-{
-	/*------------------------------------------------------------------------------
-		Sets up and launches the kernel to compute the half kick on the GPU.
-	------------------------------------------------------------------------------*/
-	size_t bytes = nAtom * 3 * sizeof(double);
-	double *d_rv = nullptr, *d_ra = nullptr;
-
-	cudaMalloc(&d_rv, bytes);
-	cudaMalloc(&d_ra, bytes);
-	cudaMemcpy(d_rv, rv, bytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_ra, ra, bytes, cudaMemcpyHostToDevice);
-
-	int grid = (nAtom + BLOCK_SIZE - 1) / BLOCK_SIZE;
-	HalfKickBaseKernel<<<grid, BLOCK_SIZE>>>(
-		d_rv,
-		d_ra,
-		nAtom,
-		DeltaTH);
-	cudaDeviceSynchronize();
-
-	cudaMemcpy(rv, d_rv, bytes, cudaMemcpyDeviceToHost);
-	cudaFree(d_rv);
-	cudaFree(d_ra);
-}
-
-/*----------------------------------------------------------------------------*/
-void ApplyBoundaryCondBaseCUDA()
-{
-	/*------------------------------------------------------------------------------
-		Sets up and launches the kernel to apply periodic boundary conditions on the GPU.
-	------------------------------------------------------------------------------*/
+	// set up CUDA device memory
 	size_t bytes = nAtom * 3 * sizeof(double);
 	double *d_r = nullptr;
+	double *d_rv = nullptr;
+	double *d_ra = nullptr;
 
 	cudaMalloc(&d_r, bytes);
+	cudaMalloc(&d_rv, bytes);
+	cudaMalloc(&d_ra, bytes);
 	cudaMemcpy(d_r, r, bytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_rv, rv, bytes, cudaMemcpyHostToDevice);
+	cudaMemset(d_ra, 0, bytes);
+
+	double *d_potEnergy = nullptr;
+	cudaMalloc(&d_potEnergy, sizeof(double));
 
 	int grid = (nAtom + BLOCK_SIZE - 1) / BLOCK_SIZE;
-	ApplyBoundaryCondKernel<<<grid, BLOCK_SIZE>>>(
-		d_r,
-		nAtom,
-		make_double3(Region[0], Region[1], Region[2]),
-		make_double3(RegionH[0], RegionH[1], RegionH[2]));
-	cudaDeviceSynchronize();
+
+	for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
+	{
+		//HalfKickBaseCUDA();	  /* First half kick to obtain v(t+Dt/2) */	
+		cudaDeviceSynchronize();
+		HalfKickBaseKernel<<<grid, BLOCK_SIZE>>>(
+			d_rv,
+			d_ra,
+			nAtom,
+			DeltaTH);
+		cudaDeviceSynchronize();
+		//UpdatePositionCUDA(); /* Update atomic coordinates to r(t+Dt) */
+		UpdatePositionKernel<<<grid, BLOCK_SIZE>>>(
+			d_r,      // device positions
+			d_rv,     // device velocities
+			nAtom,    // atom count
+			DELTAT    // timestep
+		);
+		cudaDeviceSynchronize();
+		//ApplyBoundaryCondBaseCUDA();
+		ApplyBoundaryCondKernel<<<grid, BLOCK_SIZE>>>(
+			d_r,
+			nAtom,
+			make_double3(Region[0], Region[1], Region[2]),
+			make_double3(RegionH[0], RegionH[1], RegionH[2]));
+		cudaDeviceSynchronize();
+		//ComputeAccelBaseCUDA(); /* Computes new accelerations, a(t+Dt) */
+		cudaMemset(d_potEnergy, 0, sizeof(double));
+		ComputeAccelBaseKernel<<<grid, BLOCK_SIZE>>>(
+			d_r,
+			d_ra,
+			nAtom,
+			make_double3(RegionH[0], RegionH[1], RegionH[2]),
+			Duc,
+			Uc,
+			d_potEnergy);
+		cudaDeviceSynchronize();
+		//HalfKickBaseCUDA();		/* Second half kick to obtain v(t+Dt) */
+		HalfKickBaseKernel<<<grid, BLOCK_SIZE>>>(
+			d_rv,
+			d_ra,
+			nAtom,
+			DeltaTH);
+		cudaDeviceSynchronize();
+		if (stepCount % STEPAVG == 0) {
+			cudaMemcpy(rv, d_rv, bytes, cudaMemcpyDeviceToHost);
+			cudaMemcpy(&potEnergy, d_potEnergy, sizeof(double), cudaMemcpyDeviceToHost);
+			EvalPropsBase(); // Note that this uses the CPU version of EvalPropsBase since we are only using this to verify the correctness of the GPU code.
+		}
+	}
 
 	cudaMemcpy(r, d_r, bytes, cudaMemcpyDeviceToHost);
 	cudaFree(d_r);
+	cudaFree(d_rv);
+	cudaFree(d_ra);
+
+	return 0;
 }
 
-void UpdatePositionCUDA()
-{
-    size_t bytes = nAtom * 3 * sizeof(double);
-    double *d_r = nullptr, *d_rv = nullptr;
-
-    // Allocate & copy data to device
-    cudaMalloc(&d_r,  bytes);
-    cudaMalloc(&d_rv, bytes);
-	cudaMemcpy(d_r,  r,  bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_rv, rv, bytes, cudaMemcpyHostToDevice);
-
-    // Launch kernel
-    int grid = (nAtom + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    UpdatePositionKernel<<<grid, BLOCK_SIZE>>>(
-        d_r,      // device positions
-        d_rv,     // device velocities
-        nAtom,    // atom count
-        DELTAT    // timestep
-    );
-    cudaDeviceSynchronize();
-
-    // Copy results back and free
-    cudaMemcpy(r, d_r, bytes, cudaMemcpyDeviceToHost);
-    cudaFree(d_r);
-    cudaFree(d_rv);
-}
 
 // Compute accelerations (Baseline O(N^2))
 __global__ void ComputeAccelBaseKernel(
@@ -153,7 +94,8 @@ __global__ void ComputeAccelBaseKernel(
 	int nAtom,
 	double3 RegionH,
 	double Duc,
-	double Uc)
+	double Uc,
+	double *potEnergy)
 {
 	int j1 = blockIdx.x * blockDim.x + threadIdx.x;
 	if (j1 >= nAtom)
@@ -161,6 +103,8 @@ __global__ void ComputeAccelBaseKernel(
 
 	// Local accumulators
 	double ax = 0.0, ay = 0.0, az = 0.0;
+	double rrcut = RCUT * RCUT;
+	double ri2, ri6, r1, fcVal, loc_potEnergy;
 
 	// Iterate over all other atoms
 	for (int j2 = 0; j2 < nAtom; ++j2)
@@ -179,21 +123,23 @@ __global__ void ComputeAccelBaseKernel(
 
 		double rr = dx * dx + dy * dy + dz * dz;
 		// Within cutoff
-		if (rr < RCUT * RCUT)
+		if (rr < rrcut)
 		{
-			double ri2 = 1.0 / rr;
-			double ri6 = ri2 * ri2 * ri2;
-			double r1 = sqrt(rr);
-			double fcVal = 48.0 * ri2 * ri6 * (ri6 - 0.5) + Duc / r1;
+			ri2 = 1.0 / rr;
+			ri6 = ri2 * ri2 * ri2;
+			r1 = sqrt(rr);
+			fcVal = 48.0 * ri2 * ri6 * (ri6 - 0.5) + Duc / r1;
 			ax += fcVal * dx;
 			ay += fcVal * dy;
 			az += fcVal * dz;
+			loc_potEnergy = loc_potEnergy + 0.5*(4.0*ri6*(ri6-1.0) - Uc - Duc*(r1-RCUT));
 		}
 	}
 	// Write back
 	ra[j1 * 3] = ax;
 	ra[j1 * 3 + 1] = ay;
 	ra[j1 * 3 + 2] = az;
+	atomicAdd(potEnergy, loc_potEnergy);
 }
 
 // Velocity half-kick (v += deltat/2 * a)
