@@ -20,8 +20,8 @@ int parallel_N3L()
 	for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
 	{
 		SingleStepPN3L();
-		if (stepCount % STEPAVG == 0)
-			EvalPropsPN3L();
+		// if (stepCount % STEPAVG == 0)
+		// 	EvalPropsPN3L();
 	}
 	return 0;
 }

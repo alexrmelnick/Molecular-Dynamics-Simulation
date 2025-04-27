@@ -14,8 +14,8 @@ int parallel_base()
     for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
     {
         SingleStepPBase();
-        if (stepCount % STEPAVG == 0)
-            EvalPropsPBase();
+        // if (stepCount % STEPAVG == 0)
+        //     EvalPropsPBase();
     }
     return 0;
 }

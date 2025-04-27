@@ -12,7 +12,7 @@ int serial_n3l() {
 		SingleStepN3L(); 
 		// If needing to verify, but don't include for timing 
 		// Remember to comment out pot_energy in ComputeAccel() too
-		if (stepCount%STEPAVG == 0) EvalPropsN3L();
+		// if (stepCount%STEPAVG == 0) EvalPropsN3L();
 	}
 	return 0;
 }

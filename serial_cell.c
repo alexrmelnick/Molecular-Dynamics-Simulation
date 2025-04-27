@@ -12,7 +12,7 @@ int serial_cell() {
 	SortCells();
 	for (stepCount=1; stepCount<=STEPLIMIT; stepCount++) {
 		SingleStepCell(); 
-		if (stepCount%STEPAVG == 0) EvalPropsCell();
+		// if (stepCount%STEPAVG == 0) EvalPropsCell();
 		if (stepCount%sortstep == 0) CompressCells();
 	}
 	return 0;

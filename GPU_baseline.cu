@@ -71,11 +71,11 @@ int gpu_base()
 			nAtom,
 			DeltaTH);
 		cudaDeviceSynchronize();
-		if (stepCount % STEPAVG == 0) {
-			cudaMemcpy(rv, d_rv, bytes, cudaMemcpyDeviceToHost);
-			cudaMemcpy(&potEnergy, d_potEnergy, sizeof(double), cudaMemcpyDeviceToHost);
-			EvalPropsBase(); // Note that this uses the CPU version of EvalPropsBase since we are only using this to verify the correctness of the GPU code.
-		}
+		// if (stepCount % STEPAVG == 0) {
+		// 	cudaMemcpy(rv, d_rv, bytes, cudaMemcpyDeviceToHost);
+		// 	cudaMemcpy(&potEnergy, d_potEnergy, sizeof(double), cudaMemcpyDeviceToHost);
+		// 	EvalPropsBase(); // Note that this uses the CPU version of EvalPropsBase since we are only using this to verify the correctness of the GPU code.
+		// }
 	}
 
 	cudaMemcpy(r, d_r, bytes, cudaMemcpyDeviceToHost);
@@ -104,7 +104,8 @@ __global__ void ComputeAccelBaseKernel(
 	// Local accumulators
 	double ax = 0.0, ay = 0.0, az = 0.0;
 	double rrcut = RCUT * RCUT;
-	double ri2, ri6, r1, fcVal, loc_potEnergy;
+	double ri2, ri6, r1, fcVal;
+	double loc_potEnergy = 0.0;
 
 	// Iterate over all other atoms
 	for (int j2 = 0; j2 < nAtom; ++j2)
@@ -139,7 +140,7 @@ __global__ void ComputeAccelBaseKernel(
 	ra[j1 * 3] = ax;
 	ra[j1 * 3 + 1] = ay;
 	ra[j1 * 3 + 2] = az;
-	atomicAdd(potEnergy, loc_potEnergy);
+	// atomicAdd(potEnergy, loc_potEnergy);
 }
 
 // Velocity half-kick (v += deltat/2 * a)

@@ -13,21 +13,16 @@
 #include "serial_cell.c"
 #include "GPU_baseline.cu"
 
-//#define DIMENSIONS 2        // 2D simulation
-//#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
-//! Note: I have no idea how many time steps are needed or reasonable, I just picked a number
-//#define BOX_LENGTH 10.0f // The length of the box in which the particles are contained
+
 #define OPTIONS 6        // The number of different variants of the simulation
 
 // The number of particles in the simulation
-// Number of particles = A * test_number * test_number + B * test_number + C
+// Number of particles = 4*(A * test_number * test_number + B * test_number + C)^3
 // with A, B, C being the parameters of a quadratic function and test_number being a number in the range [0, NUM_TESTS)
 #define A 0
 #define B 2
-#define C 10
-#define NUM_TESTS 1 //5
-//#define MAX_NUM_PARTICLES (A * NUM_TESTS * NUM_TESTS + B * NUM_TESTS + C)
-//! TODO: Determine a good parameters for this to test a wide range of hardware configurations (various cache sizes, etc.)
+#define C 6
+#define NUM_TESTS 8
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -86,7 +81,7 @@ int main()
     //cudaEvent_t start, stop;
     float time_stamp[OPTIONS][NUM_TESTS];
     double final_answer = 0;
-    long int x, n, k, alloc_size;
+    long int x, n;
     //data_t *result;
 
     wakeup_delay();
@@ -94,12 +89,12 @@ int main()
 
     // Baseline
     OPTION = 0;
-    printf("\nTesting option baseline serial\n\n");
+    printf("\n\nTesting option baseline serial\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_base();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -108,12 +103,12 @@ int main()
 
     // Newton's 3rd Law
     OPTION++;
-    printf("\nTesting option Newton's 3rd Law (USC)\n\n");
+    printf("\n\nTesting option Newton's 3rd Law (USC)\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_n3l();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -122,12 +117,12 @@ int main()
     
     // OPENMP - Baseline
     OPTION++;
-    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
+    printf("\n\nTesting option Baseline with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_base();
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -136,12 +131,12 @@ int main()
 
     // OPENMP - Newton's 3rd Law
     OPTION++;
-    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    printf("\n\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -150,12 +145,12 @@ int main()
 
     // Cell List 
     OPTION++;
-    printf("\nTesting option Cell Lists (USC)\n\n");
+    printf("\n\nTesting option Cell Lists (USC)\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
         final_answer += serial_cell();
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
@@ -164,12 +159,12 @@ int main()
 
     // GPU Baseline
     OPTION++;
-    printf("\nTesting option CUDA baseline\n\n");
+    printf("\n\nTesting option CUDA baseline\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("Testing size %ld\n", n);
-        printf("\nTime, temperature, potential energy, total energy\n");
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += gpu_base();
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -177,14 +172,14 @@ int main()
     }
 
     /* output times */
-    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tCell List,\tGPU Baseline\n");
+    printf("\n\n# Atoms, Baseline, N3L, OpenMP Baseline, OpenMP N3L, Cell List, GPU Baseline\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
-        printf("%.0f,\t", 4*pow((A * i * i + B * i + C),3));
+        printf("%.0f, ", 4*pow((A * i * i + B * i + C),3));
         for (j = 0; j < OPTIONS; j++) {
             if (j != 0) {
-            printf(",\t\t");
+            printf(", ");
             }
             printf("%.4f", time_stamp[j][i]);
         }
