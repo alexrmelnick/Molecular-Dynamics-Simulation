@@ -75,6 +75,13 @@ void HalfKickCell();
 void ApplyBoundaryCondCell();
 void EvalPropsCell();
 
+/* Serial AVX Implementation */
+void ComputeAccelAVX();
+void SingleStepAVX();
+void HalfKickAVX();
+void ApplyBoundaryCondAVX();
+void EvalPropsAVX();
+
 /* Constants ******************************************************************/
 
 int InitUcell[3];   /* Number of unit cells */
@@ -95,9 +102,9 @@ double totEnergy;     /* Total energy */
 double temperature;   /* Current temperature */
 int stepCount;        /* Current time step */
 int head_tail[NCLMAX][2];     /* Headers for the linked cell lists */
-int lscl[NMAX];       /* Linked cell lists */
 int lc[3];            /* Number of cells in the x|y|z direction */
 double rc[3];         /* Length of a cell in the x|y|z direction */
+double buffer[4];
 double r_cell[NMAX][3];  
 double rv_cell[NMAX][3];   
 double ra_cell[NMAX][3];

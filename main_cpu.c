@@ -10,12 +10,13 @@
 //#include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
+#include "serial_AVX.c"
 
 //#define DIMENSIONS 2        // 2D simulation
 //#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
 //! Note: I have no idea how many time steps are needed or reasonable, I just picked a number
 //#define BOX_LENGTH 10.0f // The length of the box in which the particles are contained
-#define OPTIONS 5        // The number of different variants of the simulation
+#define OPTIONS 4        // The number of different variants of the simulation
 
 // The number of particles in the simulation
 // Number of particles = A * test_number * test_number + B * test_number + C
@@ -84,8 +85,14 @@ int main()
     //cudaEvent_t start, stop;
     float time_stamp[OPTIONS][NUM_TESTS];
     double final_answer = 0;
-    long int x, n, k, alloc_size;
+    long int x, n, k, alloc_size, ok;
     //data_t *result;
+
+    // align memory
+    alloc_size = 3 * NMAX;
+    //ok = posix_memalign((void**)r, 64, alloc_size*sizeof(double));
+    //ok = posix_memalign((void**)rv, 64, alloc_size*sizeof(double));
+    //ok = posix_memalign((void**)ra, 64, alloc_size*sizeof(double));
 
     wakeup_delay();
     final_answer = wakeup_delay();
@@ -117,7 +124,8 @@ int main()
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
-    
+
+    /*
     // OPENMP - Baseline
     OPTION++;
     printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
@@ -145,6 +153,7 @@ int main()
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
+    */
 
     // Cell List 
     OPTION++;
@@ -160,8 +169,22 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
+    // AVX 
+    OPTION++;
+    printf("\nTesting option AVX\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
+        final_answer += serial_AVX();
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
     /* output times */
-    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tCell List\n");
+    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tCell List,\tAVX\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
