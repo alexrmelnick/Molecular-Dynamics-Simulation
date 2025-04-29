@@ -75,6 +75,15 @@ void HalfKickCell();
 void ApplyBoundaryCondCell();
 void EvalPropsCell();
 
+/* OpenMP Cells O(N) Implementation */
+void SortPCells();
+void CompressPCells();
+void ComputeAccelPCell();
+void SingleStepPCell();
+void HalfKickPCell();
+void ApplyBoundaryCondPCell();
+void EvalPropsPCell();
+
 /* Constants ******************************************************************/
 
 int InitUcell[3];   /* Number of unit cells */

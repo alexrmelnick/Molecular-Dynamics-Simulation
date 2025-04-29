@@ -12,9 +12,10 @@
 #include "serial_baseline.c"
 #include "serial_cell.c"
 #include "GPU_baseline.cu"
+#include "parallel_cell.c"
 
 
-#define OPTIONS 6        // The number of different variants of the simulation
+#define OPTIONS 7        // The number of different variants of the simulation
 
 // The number of particles in the simulation
 // Number of particles = 4*(A * test_number * test_number + B * test_number + C)^3
@@ -22,7 +23,7 @@
 #define A 0
 #define B 2
 #define C 6
-#define NUM_TESTS 8
+#define NUM_TESTS 4
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -171,8 +172,22 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
+    // GPU Baseline
+    OPTION++;
+    printf("\n\nTesting option OpenMP Parallelized Cell List\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_cell();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
     /* output times */
-    printf("\n\n# Atoms, Baseline, N3L, OpenMP Baseline, OpenMP N3L, Cell List, GPU Baseline\n");
+    printf("\n\n# Atoms, Baseline, N3L, OpenMP Baseline, OpenMP N3L, Cell List, GPU Baseline, OpenMP Cell List\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
