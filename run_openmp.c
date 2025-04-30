@@ -4,9 +4,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "cpu.h"
 #include "parallel_baseline.c"
 #include "parallel_N3L.c"
+#include "parallel_cell.c"
 #include "serial_baseline.c"
+#include "serial_N3L.c"
 
 #define OPTIONS 12        // The number of different variants of the simulation
 
