@@ -5,18 +5,12 @@
 #include <unistd.h>
 
 #include "cpu.h"
-#include "serial_baseline.c"
-#include "parallel_baseline.c"
-
 #include "serial_N3L.c"
-#include "serial_N3L_AVX.c"
-#include "parallel_N3L.c"
 
-#include "parallel_cell.c"
-#include "serial_cell.c"
+#include "gpu.cuh"
+#include "GPU_baseline.cu"
 
-
-#define OPTIONS 7        // The number of different variants of the simulation
+#define OPTIONS 1 // The number of different variants of the simulation
 
 // The number of particles in the simulation
 // Number of particles = 4*(A * test_number * test_number + B * test_number + C)^3
@@ -24,8 +18,7 @@
 #define A 0
 #define B 2
 #define C 6
-#define NUM_TESTS_SHORT 0
-#define NUM_TESTS 8
+#define NUM_TESTS 3
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -79,125 +72,39 @@ MAIN FUNCTION CALL - TIMES ALL IMPLEMENTATIONS
 */
 int main()
 {
-    int OPTION = 0;
-    struct timespec time_start, time_stop;
-    // cudaEvent_t start, stop;
+    int OPTION;
+    // struct timespec time_start, time_stop;
+    cudaEvent_t start, stop;
     float time_stamp[OPTIONS][NUM_TESTS];
     double final_answer = 0;
     long int x, n;
-    // data_t *result;
+    float elapsed_gpu;
 
     wakeup_delay();
     final_answer = wakeup_delay();
 
-    // Baseline
+    // GPU Baseline
     OPTION = 0;
-    // printf("\n\nTesting option baseline serial\n\n");
-    // for (x = 0; x < NUM_TESTS_SHORT && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    // {
-    //     InitAll(n);
-    //     printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-    //     // printf("\nTime, temperature, potential energy, total energy\n");
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-    //     final_answer += serial_base();
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-    //     time_stamp[OPTION][x] = interval(time_start, time_stop);
-    // }
-    // for (x = NUM_TESTS_SHORT; x < NUM_TESTS; x++)
-    // {
-    //     time_stamp[OPTION][x] = -1;
-    // }
-
-    // // OPENMP - Baseline
-    // OPTION++;
-    // printf("\n\nTesting option Baseline with OpenMP Multi-Threading\n\n");
-    // for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    // {
-    //     InitAll(n);
-    //     printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-    //     // printf("\nTime, temperature, potential energy, total energy\n");
-    //     clock_gettime(CLOCK_REALTIME, &time_start);
-    //     final_answer += parallel_base();
-    //     clock_gettime(CLOCK_REALTIME, &time_stop);
-    //     time_stamp[OPTION][x] = interval(time_start, time_stop);
-    // }
-
-    // // Newton's 3rd Law
-    // OPTION++;
-    // printf("\n\nTesting option Newton's 3rd Law (USC)\n\n");
-    // for (x = 0; x < NUM_TESTS_SHORT && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    // {
-    //     InitAll(n);
-    //     printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-    //     // printf("\nTime, temperature, potential energy, total energy\n");
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-    //     final_answer += serial_n3l();
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-    //     time_stamp[OPTION][x] = interval(time_start, time_stop);
-    // }
-    // for (x = NUM_TESTS_SHORT; x < NUM_TESTS; x++)
-    // {
-    //     time_stamp[OPTION][x] = -1;
-    // }
-
-    // // Newton's 3rd Law with AVX
-    // OPTION++;
-    // printf("\n\nTesting option Newton's 3rd Law with AVX\n\n");
-    // for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    // {
-    //     InitAll(n);
-    //     printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-    //     // printf("\nTime, temperature, potential energy, total energy\n");
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-    //     final_answer += serial_AVX();
-    //     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-    //     time_stamp[OPTION][x] = interval(time_start, time_stop);
-    // }
-
-    // // OPENMP - Newton's 3rd Law
-    // OPTION++;
-    // printf("\n\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
-    // for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    // {
-    //     InitAll(n);
-    //     printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-    //     // printf("\nTime, temperature, potential energy, total energy\n");
-    //     clock_gettime(CLOCK_REALTIME, &time_start);
-    //     final_answer += parallel_N3L();
-    //     clock_gettime(CLOCK_REALTIME, &time_stop);
-    //     time_stamp[OPTION][x] = interval(time_start, time_stop);
-    // }
-
-    // Cell List
-    OPTION++;
-    printf("\n\nTesting option Cell Lists (USC)\n\n");
+    printf("\n\nTesting option CUDA baseline\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
     {
         InitAll(n);
-        printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-        // printf("\nTime, temperature, potential energy, total energy\n");
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_cell();
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-        time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }
-
-    // Parallel Cell List
-    OPTION++;
-    printf("\n\nTesting option OpenMP Parallelized Cell List\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
-    {
-        InitAll(n);
-        printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
-        // printf("\nTime, temperature, potential energy, total energy\n");
-        clock_gettime(CLOCK_REALTIME, &time_start);
-        final_answer += parallel_cell();
-        clock_gettime(CLOCK_REALTIME, &time_stop);
-        time_stamp[OPTION][x] = interval(time_start, time_stop);
+        printf("\nTesting size %ld\n", n);
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
+        cudaEventRecord(start, 0);
+        final_answer += gpu_base();
+        cudaEventRecord(stop, 0);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&elapsed_gpu, start, stop);
+        elapsed_gpu /= 1000.0; // convert to seconds
+        time_stamp[OPTION][x] = elapsed_gpu;
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
     }
 
     /* output times */
-    printf("\n\n# Atoms, Baseline, OpenMP Baseline, N3L, AVX N3L, OpenMP N3L, Cell List, OpenMP Cell List\n");
+    printf("\n\n# Atoms, CUDA Baseline\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++)
