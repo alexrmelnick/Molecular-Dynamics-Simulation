@@ -4,26 +4,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "cpu.h"
-#include "gpu.cuh"
-#include "serial_N3L.c"
 #include "parallel_baseline.c"
 #include "parallel_N3L.c"
 #include "serial_baseline.c"
-#include "serial_cell.c"
-#include "GPU_baseline.cu"
-#include "parallel_cell.c"
 
-
-#define OPTIONS 7        // The number of different variants of the simulation
+#define OPTIONS 12        // The number of different variants of the simulation
 
 // The number of particles in the simulation
-// Number of particles = 4*(A * test_number * test_number + B * test_number + C)^3
+// Number of particles = 4 * (A * test_number * test_number + B * test_number + C)^3
 // with A, B, C being the parameters of a quadratic function and test_number being a number in the range [0, NUM_TESTS)
 #define A 0
 #define B 2
-#define C 6
-#define NUM_TESTS 4
+#define C 10
+#define NUM_TESTS 5
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -79,51 +72,24 @@ int main()
 {
     int OPTION = 0;
     struct timespec time_start, time_stop;
-    //cudaEvent_t start, stop;
     float time_stamp[OPTIONS][NUM_TESTS];
     double final_answer = 0;
-    long int x, n;
-    //data_t *result;
+    long int x, n, k;
 
     wakeup_delay();
     final_answer = wakeup_delay();
 
-    // Baseline
-    OPTION = 0;
-    printf("\n\nTesting option baseline serial\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
-    {
-        InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_base();
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-        time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }
+    // Set threads to 2
+    omp_set_num_threads(2);
 
-    // Newton's 3rd Law
-    OPTION++;
-    printf("\n\nTesting option Newton's 3rd Law (USC)\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
-    {
-        InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_n3l();
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-        time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }
-    
     // OPENMP - Baseline
-    OPTION++;
-    printf("\n\nTesting option Baseline with OpenMP Multi-Threading\n\n");
+    OPTION = 0;
+    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_base();
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -132,54 +98,161 @@ int main()
 
     // OPENMP - Newton's 3rd Law
     OPTION++;
-    printf("\n\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_N3L();
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
-    // Cell List 
+    // OPENMP - Cells
     OPTION++;
-    printf("\n\nTesting option Cell Lists (USC)\n\n");
+    printf("\nTesting option Cell List with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-        final_answer += serial_cell();
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
-        time_stamp[OPTION][x] = interval(time_start, time_stop);
-    }
-
-    // GPU Baseline
-    OPTION++;
-    printf("\n\nTesting option CUDA baseline\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
-    {
-        InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
-        final_answer += gpu_base();
+        final_answer += parallel_cell();
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
-    // OpenMP Cell
+    // Set threads to 4
+    omp_set_num_threads(4);
+
+    // OPENMP - Baseline
     OPTION++;
-    printf("\n\nTesting option OpenMP Parallelized Cell List\n\n");
+    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
     for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
     {
         InitAll(n);
-        printf("\nTesting size %ld\n", n);
-        // printf("\nTime, temperature, potential energy, total energy\n");
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_base();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Newton's 3rd Law
+    OPTION++;
+    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_N3L();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Cells
+    OPTION++;
+    printf("\nTesting option Cell List with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_cell();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // Set threads to 8
+    omp_set_num_threads(8);
+
+    // OPENMP - Baseline
+    OPTION++;
+    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_base();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Newton's 3rd Law
+    OPTION++;
+    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_N3L();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Cells
+    OPTION++;
+    printf("\nTesting option Cell List with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_cell();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // Set threads to 16
+    omp_set_num_threads(16);
+
+    // OPENMP - Baseline
+    OPTION++;
+    printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_base();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Newton's 3rd Law
+    OPTION++;
+    printf("\nTesting option Netwon's 3rd Law with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_N3L();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+
+    // OPENMP - Cells
+    OPTION++;
+    printf("\nTesting option Cell List with OpenMP Multi-Threading\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("Testing size %ld\n", n);
+        printf("\nTime, temperature, potential energy, total energy\n");
         clock_gettime(CLOCK_REALTIME, &time_start);
         final_answer += parallel_cell();
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -187,14 +260,14 @@ int main()
     }
 
     /* output times */
-    printf("\n\n# Atoms, Baseline, N3L, OpenMP Baseline, OpenMP N3L, Cell List, GPU Baseline, OpenMP Cell List\n");
+    printf("\n\n# Atoms, \tBase-2, \tN3L-2, \tCells-2, \tBase-4, \tN3L-4, \tCells-4, \tBase-8, \tN3L-8, \tCells-8, \tBase-16, \tN3L-16, \tCells-16\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
-        printf("%.0f, ", 4*pow((A * i * i + B * i + C),3));
+        printf("%.0f,\t", 4*pow((A * i * i + B * i + C),3));
         for (j = 0; j < OPTIONS; j++) {
             if (j != 0) {
-            printf(", ");
+            printf(",\t\t");
             }
             printf("%.4f", time_stamp[j][i]);
         }
@@ -223,12 +296,10 @@ void InitParams(int ideal_num_atoms)
     /*------------------------------------------------------------------------------
         Initializes parameters.
     ------------------------------------------------------------------------------*/
-    int k;
+    int k,c;
 	double rr,ri2,ri6,r1;
 
 	double num_cells = cbrt(ideal_num_atoms/4); 
-	// Note for ourselves (TODO: delete): N = 4 u^3, u = 0*x^2 + bx + c
-	//std::assert(num_cells - floor(num_cells) < 0.0001);
 	if (num_cells < 1) num_cells = 1;	// minimum 1 unit cell
 	InitUcell[0] = (int) num_cells;
 	InitUcell[1] = (int) num_cells;
@@ -241,7 +312,7 @@ void InitParams(int ideal_num_atoms)
 		RegionH[k] = 0.5*Region[k];
 	}
 
-    // Compute the # of cells for linked cell lists 
+    // Compute the cells for cell lists 
 	for (k=0; k<3; k++) {
 		lc[k] = Region[k]/RCUT; 
 		rc[k] = Region[k]/lc[k];
@@ -310,4 +381,3 @@ void InitConf()
         for (k = 0; k < 3; k++)
             rv[n][k] = rv[n][k] - vSum[k];
 }
-

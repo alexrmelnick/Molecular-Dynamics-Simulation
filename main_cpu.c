@@ -6,27 +6,21 @@
 
 #include "cpu.h"
 #include "serial_N3L.c"
-//#include "parallel_baseline.c"
-//#include "parallel_N3L.c"
+#include "parallel_baseline.c"
+#include "parallel_N3L.c"
 #include "serial_baseline.c"
 #include "serial_cell.c"
 #include "serial_AVX.c"
 
-//#define DIMENSIONS 2        // 2D simulation
-//#define NUM_TIME_STEPS 1000 // The number of time steps to simulate
-//! Note: I have no idea how many time steps are needed or reasonable, I just picked a number
-//#define BOX_LENGTH 10.0f // The length of the box in which the particles are contained
-#define OPTIONS 4        // The number of different variants of the simulation
+#define OPTIONS 7        // The number of different variants of the simulation
 
 // The number of particles in the simulation
-// Number of particles = A * test_number * test_number + B * test_number + C
+// Number of particles = 4 * (A * test_number * test_number + B * test_number + C)^3
 // with A, B, C being the parameters of a quadratic function and test_number being a number in the range [0, NUM_TESTS)
 #define A 0
 #define B 2
 #define C 10
-#define NUM_TESTS 1 //5
-//#define MAX_NUM_PARTICLES (A * NUM_TESTS * NUM_TESTS + B * NUM_TESTS + C)
-//! TODO: Determine a good parameters for this to test a wide range of hardware configurations (various cache sizes, etc.)
+#define NUM_TESTS 1
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -82,17 +76,9 @@ int main()
 {
     int OPTION = 0;
     struct timespec time_start, time_stop;
-    //cudaEvent_t start, stop;
     float time_stamp[OPTIONS][NUM_TESTS];
     double final_answer = 0;
-    long int x, n, k, alloc_size, ok;
-    //data_t *result;
-
-    // align memory
-    alloc_size = 3 * NMAX;
-    //ok = posix_memalign((void**)r, 64, alloc_size*sizeof(double));
-    //ok = posix_memalign((void**)rv, 64, alloc_size*sizeof(double));
-    //ok = posix_memalign((void**)ra, 64, alloc_size*sizeof(double));
+    long int x, n, k;
 
     wakeup_delay();
     final_answer = wakeup_delay();
@@ -125,7 +111,6 @@ int main()
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
 
-    /*
     // OPENMP - Baseline
     OPTION++;
     printf("\nTesting option Baseline with OpenMP Multi-Threading\n\n");
@@ -153,7 +138,20 @@ int main()
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
-    */
+
+    // OPENMP - Cells
+    OPTION++;
+    printf("\n\nTesting option OpenMP Parallelized Cell List\n\n");
+    for (x = 0; x < NUM_TESTS && (n = 4*pow((A * x * x + B * x + C),3)); x++)
+    {
+        InitAll(n);
+        printf("\nTesting size %ld\n", n);
+        // printf("\nTime, temperature, potential energy, total energy\n");
+        clock_gettime(CLOCK_REALTIME, &time_start);
+        final_answer += parallel_cell();
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+        time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
 
     // Cell List 
     OPTION++;
@@ -184,7 +182,7 @@ int main()
     }
 
     /* output times */
-    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tCell List,\tAVX\n");
+    printf("\n\n# Atoms, Baseline,\tN3L,\tOpenMP Baseline,\tOpenMP N3L,\tOpenMP Cells,\tCell List,\tAVX\n");
     {
         int i, j;
         for (i = 0; i < NUM_TESTS; i++) {
@@ -224,8 +222,6 @@ void InitParams(int ideal_num_atoms)
 	double rr,ri2,ri6,r1;
 
 	double num_cells = cbrt(ideal_num_atoms/4); 
-	// Note for ourselves (TODO: delete): N = 4 u^3, u = 0*x^2 + bx + c
-	//std::assert(num_cells - floor(num_cells) < 0.0001);
 	if (num_cells < 1) num_cells = 1;	// minimum 1 unit cell
 	InitUcell[0] = (int) num_cells;
 	InitUcell[1] = (int) num_cells;
@@ -238,17 +234,11 @@ void InitParams(int ideal_num_atoms)
 		RegionH[k] = 0.5*Region[k];
 	}
 
-    // Compute the # of cells for linked cell lists 
+    // Compute the cells for cell lists 
 	for (k=0; k<3; k++) {
 		lc[k] = Region[k]/RCUT; 
 		rc[k] = Region[k]/lc[k];
 	}
-
-    /*int total_cells = lc[0] * lc[1] * lc[2];
-    for (c = 0; c < total_cells; c++) {
-		head_tail[c][0] = 0;
-		head_tail[c][1] = 0;
-	}*/
 
 	/* Constants for potential truncation */
 	rr = RCUT*RCUT; ri2 = 1.0/rr; ri6 = ri2*ri2*ri2; r1=sqrt(rr);
