@@ -7,6 +7,7 @@ Now with OpenMP parallelization
 #include <stdio.h>
 #include <math.h>
 #include <omp.h>
+#include <stdint.h>
 
 // #include <cpu.h> // This should be commented out but it is needed to get rid of all of the squiggles while editing
 
@@ -18,8 +19,8 @@ int parallel_cell()
     for (stepCount = 1; stepCount <= STEPLIMIT; stepCount++)
     {
         SingleStepPCell();
-        if (stepCount % STEPAVG == 0)
-            EvalPropsPCell(); // Only necessary for verification
+        // if (stepCount % STEPAVG == 0)
+        //     EvalPropsPCell(); // Only necessary for verification
         if (stepCount % sortstep == 0)
             CompressPCells();
     }

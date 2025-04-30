@@ -8,6 +8,7 @@ Baseline Implementation
 #include <xmmintrin.h>
 #include <smmintrin.h>
 #include <immintrin.h>
+#include <stdint.h>
 
 int serial_AVX() {
 	//int stepCount;

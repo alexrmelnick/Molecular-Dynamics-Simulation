@@ -10,7 +10,7 @@ int serial_base() {
 	//int stepCount;
 	for (stepCount=1; stepCount<=STEPLIMIT; stepCount++) {
 		SingleStepBase(); 
-		if (stepCount%STEPAVG == 0) EvalPropsBase();
+		// if (stepCount%STEPAVG == 0) EvalPropsBase();
 	}
 	return 0;
 }
