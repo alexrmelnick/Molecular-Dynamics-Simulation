@@ -121,7 +121,7 @@ void SingleStepPN3L()
 	int n, k;
 
 	HalfKickPN3L(); /* First half kick to obtain v(t+Dt/2) */
-#pragma omp parallel for private(n, k)
+// #pragma omp parallel for private(n, k)
 	for (n = 0; n < nAtom; n++) /* Update atomic coordinates to r(t+Dt) */
 		for (k = 0; k < 3; k++)
 			r[n][k] = r[n][k] + DELTAT * rv[n][k];
@@ -137,7 +137,7 @@ void HalfKickPN3L()
 		Accelerates atomic velocities, rv, by half the time step.
 	------------------------------------------------------------------------------*/
 	int n, k;
-#pragma omp parallel for private(n, k)
+// #pragma omp parallel for private(n, k)
 	for (n = 0; n < nAtom; n++)
 		for (k = 0; k < 3; k++)
 			rv[n][k] = rv[n][k] + DeltaTH * ra[n][k];
@@ -150,7 +150,7 @@ void ApplyBoundaryCondPN3L()
 		Applies periodic boundary conditions to atomic coordinates.
 	------------------------------------------------------------------------------*/
 	int n, k;
-#pragma omp parallel for private(n, k)
+// #pragma omp parallel for private(n, k)
 	for (n = 0; n < nAtom; n++)
 		for (k = 0; k < 3; k++)
 			r[n][k] = r[n][k] - SignR(RegionH[k], r[n][k]) - SignR(RegionH[k], r[n][k] - Region[k]);
@@ -166,7 +166,7 @@ void EvalPropsPN3L()
 	int n, k;
 
 	kinEnergy = 0.0;
-#pragma omp parallel for private(n, k, vv) reduction(+ : kinEnergy)
+// #pragma omp parallel for private(n, k, vv) reduction(+ : kinEnergy)
 	for (n = 0; n < nAtom; n++)
 	{
 		vv = 0.0;
