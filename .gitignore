@@ -5,3 +5,7 @@
 *.cubin
 *.fatbin
 .vscode/
+run_all
+run_cpu
+run_openmp
+run_gpu
