@@ -17,8 +17,8 @@
 // with A, B, C being the parameters of a quadratic function and test_number being a number in the range [0, NUM_TESTS)
 #define A 0
 #define B 2
-#define C 6
-#define NUM_TESTS 3
+#define C 2
+#define NUM_TESTS 10
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED

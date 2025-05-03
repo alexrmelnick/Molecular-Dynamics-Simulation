@@ -23,9 +23,10 @@
 // with A, B, C being the parameters of a quadratic function and test_number being a number in the range [0, NUM_TESTS)
 #define A 0
 #define B 2
-#define C 6
-#define NUM_TESTS_SHORT 0
-#define NUM_TESTS 8
+#define C 2
+#define NUM_TESTS_SHORT 11
+#define NUM_TESTS_CELL 8
+#define NUM_TESTS 11
 
 /*
 FUNCTIONS (TRIVIAL AND OPTIMIZED) TO BE TESTED
@@ -89,7 +90,7 @@ int main()
     wakeup_delay();
     final_answer = wakeup_delay();
 
-    // Baseline
+    Baseline
     OPTION = 0;
     printf("\n\nTesting option baseline serial\n\n");
     for (x = 0; x < NUM_TESTS_SHORT && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
@@ -170,7 +171,7 @@ int main()
     // Cell List
     OPTION++;
     printf("\n\nTesting option Cell Lists (USC)\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
+    for (x = 0; x < NUM_TESTS_CELL && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
     {
         InitAll(n);
         printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
@@ -180,11 +181,15 @@ int main()
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
     }
+    for (x = NUM_TESTS_CELL; x < NUM_TESTS; x++)
+    {
+        time_stamp[OPTION][x] = -1;
+    }
 
     // Parallel Cell List
     OPTION++;
     printf("\n\nTesting option OpenMP Parallelized Cell List\n\n");
-    for (x = 0; x < NUM_TESTS && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
+    for (x = 0; x < NUM_TESTS_CELL && (n = 4 * pow((A * x * x + B * x + C), 3)); x++)
     {
         InitAll(n);
         printf("\nTesting size %ld (%ld/%d)\n", n, x, NUM_TESTS);
@@ -193,6 +198,10 @@ int main()
         final_answer += parallel_cell();
         clock_gettime(CLOCK_REALTIME, &time_stop);
         time_stamp[OPTION][x] = interval(time_start, time_stop);
+    }
+    for (x = NUM_TESTS_CELL; x < NUM_TESTS; x++)
+    {
+        time_stamp[OPTION][x] = -1;
     }
 
     /* output times */
